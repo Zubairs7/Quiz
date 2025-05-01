@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Monster AI Quiz (JavaScript Version)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Orbitron&display=swap" rel="stylesheet" />
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(-100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    @keyframes glow {
+      0% { box-shadow: 0 0 5px rgba(0, 242, 254, 0.4); }
+      50% { box-shadow: 0 0 20px rgba(0, 242, 254, 0.6); }
+      100% { box-shadow: 0 0 5px rgba(0, 242, 254, 0.4); }
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #0f172a;
+      font-family: 'Poppins', sans-serif;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px;
+      animation: fadeIn 1s ease-out;
+    }
+
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      color: #00f2fe;
+      animation: slideIn 1s ease-out;
+    }
+
+    .question {
+      background: linear-gradient(135deg, #051937 0%, #00f2fe 100%);
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 20px;
+      width: 90%;
+      max-width: 600px;
+      box-shadow: 0 0 20px rgba(0, 242, 254, 0.4);
+      animation: fadeIn 0.5s ease-out;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .question:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 5px 25px rgba(0, 242, 254, 0.6);
+    }
+
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .options label {
+      background-color: #0f172a;
+      padding: 10px;
+      border: 2px solid #00f2fe;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    .options label:hover {
+      background-color: #00c6d2;
+      color: #051937;
+      transform: scale(1.02);
+    }
+
+    img {
+      width: 200px;
+      margin-top: 10px;
+      border-radius: 10px;
+      transition: transform 0.3s ease;
+    }
+
+    img:hover {
+      transform: scale(1.05);
+    }
+
+    #submit-btn {
+      margin-top: 30px;
+      padding: 12px 30px;
+      font-size: 18px;
+      font-weight: bold;
+      background-color: #00f2fe;
+      color: #051937;
+      border: none;
+      border-radius: 15px;
+      cursor: pointer;
+      font-family: 'Poppins', sans-serif;
+      box-shadow: 0 0 10px rgba(0, 242, 254, 0.5);
+      transition: all 0.3s ease;
+      animation: pulse 2s infinite;
+    }
+
+    #submit-btn:hover {
+      background-color: #00c6d2;
+      transform: scale(1.05);
+      animation: none;
+    }
+
+    #result {
+      margin-top: 30px;
+      font-size: 22px;
+      font-weight: bold;
+      color: #00f2fe;
+      text-align: center;
+      animation: fadeIn 1s ease-out;
+    }
+
+    .result-card {
+      animation: fadeIn 1s ease-out, glow 3s infinite;
+    }
+
+    /* Loading animation */
+    #pdf-loading {
+      animation: pulse 1.5s infinite;
+    }
+
+    /* Chart animation */
+    canvas {
+      animation: fadeIn 1s ease-out;
+    }
+
+    /* Personality traits animation */
+    .trait-bar {
+      animation: slideIn 1s ease-out;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Monster AI Quiz</h1>
+
+<div id="quiz-container"></div>
+
+<div id="submit-wrapper" style="display:none;">
+  <button id="submit-btn">Submit Quiz</button>
+</div>
+
+<div id="result"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Placeholder for large quizData (will be replaced with your 60+ questions)
+const quizData = [
+{ type: "radio", question: "1. Do you like to participate in social events?", name: "q1", options: ["No", "Not Sure", "Yes"] },
+    { type: "checkbox", question: "2. Which skills do you possess?", name: "q2", options: ["Leadership", "Creativity", "Problem Solving"] },
+    { type: "radio", question: "3. Do you enjoy repairing or fixing gadgets, home appliances etc?", name: "q3", options: ["No", "Not Sure", "Yes"] },
+  { type: "radio", question: "4. Do you like to take command of the situation and lead others?", name: "q4", options: ["No", "Not Sure", "Yes"] },
+  { type: "radio", question: "5. Are you good at influencing people?", name: "q5", options: ["No", "Not Sure", "Yes"] },
+  { type: "radio", question: "6. Do you like to plan, organize and prioritize activities?", name: "q6", options: ["No", "Not Sure", "Yes"] },
+  { type: "radio", question: "7. Do you enjoy taking part in hands-on projects to build some objects or things?", name: "q7", options: ["No", "Not Sure", "Yes"] },
+  { type: "radio", question: "8. Do you like to interact, listen and solve the personal issues of others?", name: "q8", options: ["No", "Not Sure", "Yes"] },
+  { type: "radio", question: "9. Do you generally identify the flaws or mistakes in a document that others miss?", name: "q9", options: ["No", "Not Sure", "Yes"] },
+  { type: "radio", question: "10. Do you ask lots of questions to know how things work?", name: "q10", options: ["No", "Not Sure", "Yes"] },
+  { type: "radio", question: "11. Do you like to participate in a health camp?", name: "q11", options: ["No", "Not Sure", "Yes"] },
+  { type: "checkbox", question: "12. Which skills do you possess? (Select all that apply)", name: "q12", options: ["Leadership", "Creativity", "Problem Solving", "Technical Knowledge"] },
+  { type: "checkbox", question: "13. Which areas interest you the most? (Select all that apply)", name: "q13", options: ["Engineering", "Medical", "Management", "Social Work", "Research"] },
+  { type: "checkbox", question: "14. Which activities do you enjoy the most? (Select all that apply)", name: "q14", options: ["Leading teams", "Fixing gadgets", "Organizing events", "Helping people", "Experimenting with science"] },
+  { type: "checkbox", question: "15. Which qualities describe you best? (Select all that apply)", name: "q15", options: ["Creative", "Analytical", "Empathetic", "Organized", "Logical"] },
+  { type: "checkbox", question: "16. Where would you like to work? (Select all that apply)", name: "q16", options: ["Hospitals", "Research labs", "Corporate offices", "Schools", "Workshops"] },
+  { type: "checkbox", question: "17. What motivates you? (Select all that apply)", name: "q17", options: ["Helping others", "Discovering new things", "Leading a team", "Creating new products", "Organizing systems"] },
+  { type: "radio", question: "18. Which direction will the gear turn?", name: "q18", options: ["Clockwise", "Anti-Clockwise", "It will be steady", "Not sure"], image: "./gear.png" },
+  { type: "checkbox", question: "19. Which image can be made from the three shapes shown?", name: "q19", options: ["A", "B", "C", "D", "E"], image: "./abc2.png"},
+  { type: "checkbox", question: "20. What do you like most", name: "q20", options: ["social activities", "managing task", "influencing poople", "creativity", "research", "outdoor and physical activities"] },
+  { type: "radio", question: "21. Which option describes you best", name: "q21", options: ["I am motivated by achievement", "I am motivated by appreciation"] },
+  { type: "radio", question: "22. Which option describes you best", name: "q22", options: ["I give more importance to facts, tasks and logical considerations.", "I give more importance to the personal value system and social considerations."] },
+  { type: "radio", question: "23. Which option describes you best", name: "q23", options: ["I like to make plans and schedules and try to stick with them", "I like to be flexible and keep points to a minimum"] },
+  { type: "radio", question: "24. Which option describes you best", name: "q24", options: ["I usually take tasks without making a plan", "I usually plan everything first in advance before moving into action."] },
+  { type: "radio", question: "25. Which option describes you best", name: "q25", options: ["I often juggle multiple tasks at a time", "I usually do one task at a time"] },
+  { type: "checkbox", question: "26. What do you like most", name: "q26", options: ["Social Activities", "Managing Task", "Infulencing People", "Creativity", "Research", "Outdoor and Physical Activities"] },
+  { type: "checkbox", question: "27. How do you see yourself?", name: "q27", options: ["Precise, Scintific and Intellectual", "Expressive, Imaginative and Creative", "Helpful, Friendly and Trustworthy", "Energetic, influencial and Sociable", "Planned, Organized and Accurate", "Practical, Mechanical and Physically active"] },
+  { type: "radio", question: "28. You have to present your ideas to your class. You would", name: "q28", options: ["Prefer creating a working model and demonstrate to others"," Prefer creating diagrams, flowcharts, and graphs to explain ideas", "Prefer to write and practice a few key words by saying them over and over again.", "Prefer to write down and practice my speech by reading it over and over again."] },
+  { type: "radio", question: "29. Do you prefer a taecher or a presenter who uses", name:"q29", options: ["Diagrams, charts and graphs?", "Question and answer, talk, group discussion, or guest speakers?", "Handouts, books, or readings?","Demostrations, models or practical sessions?"] },
+  { type: "radio", question: "30. You are about to purchase a digital camera or a mobile phone. Apart from the practice, what would have the most influence on your decision?", name:"q30", options: ["Trying or testing it.", "Reading the details or checking its features online.", "Modern design and sleek looks.", "The salesperson telling me about its features."] },
+  { type: "radio", question: "31. Remember a time when you learned how to do something new. Avold choosing a physical skill eg. Riding a bike. You learned best by", name:"q31", name:"q31", options: ["Watching a demonstration.", "Listening to somebody explaining it and asking questions.", "Diagrams, maps, and charts - visual clues.", "Written instructions e.g a manual or book."] },
+  { type: "checkbox", question: "32. I can easily determine the best solution to a problem.", name:"q32", options: ["Almost always", "Quite often", "Sometimes", "Not very often", "Never"] },
+  {
+  type: "checkbox", 
+  question: "33. If ever given an option, which of the work options listed below would you choose to make a living?<br><span style='color:#00f2fe;font-weight:bold;'>Select one or multiple statements (Max-3)</span>", 
+  name: "q33", 
+  options: [
+    "Spending lots of time on computers and amazing others with your work on computer",
+    "Being a sports person.",
+    "Managing financials and other people's money.",
+    "Trying different ingredients and flavours in food",
+    "Develop high-featured mobile phones, smart watches, televisions, refrigerators etc.",
+    "None of the above"
+  ] 
+},
+{ 
+  type: "checkbox", 
+  question: "34. If ever given an option, which of the work options listed below would you choose to make a living?<br><span style='color:#00f2fe;font-weight:bold;'>Select one or multiple statements (Max-3)</span>", 
+  name: "q34", 
+  options: [
+    "Exploring and guiding new travel destinations to others.",
+    "Executing government policies and offering services to the public.",
+    "Marketing or selling products/services in market.",
+    "Making some new mechanism like an engine, a motors, a fan etc. that reduces human effort significantly.",
+    "Working on Global Warming, environment and pollution-related Issues.",
+    "None of the above"
+  ] 
+},
+{ 
+  type: "checkbox", 
+  question: "35. If ever given an option, which of the work options listed below would you choose to make a living?<br><span style='color:#00f2fe;font-weight:bold;'>Select one or multiple statements (Max-3)</span>", 
+  name: "q35", 
+  options: [
+    "Managing the business of a company.",
+    "Applying science and technology to solve real life problems.",
+    "Being an actor or performer in stage shows/theater.",
+    "Follow fashion trends.",
+    "Studying historical events and current scenarios.",
+    "None of the above"
+  ] 
+},
+{ 
+  type: "checkbox", 
+  question: "36. If ever given an option, which of the work options listed below would you choose to make a living?<br><span style='color:#00f2fe;font-weight:bold;'>Select one or multiple statements (Max-3)</span>", 
+  name: "q36", 
+  options: [
+    "Writing articles or stories and speaking in order to attract/reach people.",
+    "Investigating a crime scene and providing Justice.",
+    "Dedicating your life to national and public security.",
+    "Given a botanical laboratory, I would like to grow variety of fruits from a single tree.",
+    "Teaching, guiding or training others to learn new skills.",
+    "None of the above"
+  ] 
+},
+{ 
+  type: "checkbox", 
+  question: "37. If ever given an option, which of the work options listed below would you choose to make a living?<br><span style='color:#00f2fe;font-weight:bold;'>Select one or multiple statements (Max-3)</span>", 
+  name: "q37", 
+  options: [
+    "Involve myself in the wealth and financial well-being of the nation.",
+    "Drawing and painting.",
+    "Involve in space exploration mission.",
+    "Advice others on diet-related, fitness-related or health care-related tips.",
+    "Curing animals from disease.",
+    "None of the above"
+  ] 
+},
+{ 
+  type: "checkbox", 
+  question: "38. If ever given an option, which of the work options listed below would you choose to make a living?<br><span style='color:#00f2fe;font-weight:bold;'>Select one or multiple statements (Max-3)</span>", 
+  name: "q38", 
+  options: [
+    "Explore marine life.",
+    "Explore the forest.",
+    "Doing research in a lab to develop a new medical treatment.",
+    "Manage a retail store or supermarket.",
+    "Creating high-rise buildings or structures",
+    "None of the above"
+  ] 
+},
+
+  { type: "radio", question: "39. The bob on the two pendulums have the same weight. If both the pendulums are swung at the same time, which one will swing faster?", name:"q39", options: ["A", "B", "Both will swing at the same pace", "Not sure"],image: "./pendulum.png" },
+  { type: "radio", question: "40. Find the series<br>4, 8 16, 32, ----?", name:"q40", options: ["48", "64", "40","50"]},
+  { type: "radio", question: "41. Some greens are blue. No blues are white. Therefore", name:"q41", options: ["Some greens are white", "No whites are green.", "No greens are white.", "None of the above"]},
+  { type: "radio", question: "42. Look at this picture. There is something missing here. Identify the missing?", name:"q42", options: ["A", "B", "C", "D", "E"], image:"./zxy.png"},
+  { type: "radio", question: "43. How the image looks like post mixing 2 images?", name:"q43", options: ["A", "B", "C", "D", "E"], image: "./mixing.jpg"},
+  { type: "radio", question: "44. pick the odd one out-", name:"q44", options: ["Index", "Glossary", "Chapter", "Book"]},
+  { type: "radio", question: "45. A jar is filled with an even number of chocolates by a shopkeeper. How many chocolates did he put in the jar?<br>Choose the option below-", name:"q45", options: ["999","903","900","997","13"]},
+  { type: "radio", question: "46. If 7 spiders spiin 7 webs in 7 days, then how many days will a spider take to spin a web?", name:"q46", options: ["7", "5", "3", "2", "1"]},
+  { type: "radio", question: "47. Do you like subjects like social science or psychology?", name:"q47", options: ["No", "Not Sure", "Yes"]},
+  { type: "radio", question: "48. Do you like working indoors and doing paperwork?", name:"q48", options: ["No", "Not Sure", "Yes"]},
+  { type: "radio", question: "49. Are you good at arguing your point of view?", name:"q49", options: ["No", "Not Sure", "Yes"]},
+  { type: "radio", question: "50. Do you enjoy opening gadgets or toys to see the mechanism and how it works?", name:"q50", options: ["Not really","Rarely", "Yes, I have done it many times."]},
+  { type: "radio", question: "51. Can you analyze and solve problems quickly in your head?", name:"q51", options: ["No", "Not Sure", "Yes"]},
+  { type: "radio", question: "52. Find an exact copy of the code.<br>##HIIFH257O3881", name:"q52", options: ["##HIIIFH257O388I", "##HIIFH25703881", "##HIIFH25793381", "##HIIFH257O388I", "##HIIFH257O388II"]},
+  { type: "radio", question: "53. Do you find it easy to get involved in creative activities?", name:"q53", options: ["No", "Not Sure", " Yes"]},
+  { type: "radio", question: "54. Do you often discuss the social issues of society?", name:"q54", options: ["No", "Not Sure", "Yes"]},
+  { type: "radio", question: "55. Do you follow a budget, economic policies or financial news?", name:"q55", options: ["No", "Not Sure", "Yes"]},
+  { type: "radio", question: "56. Do you like to demonstrate new ideas or concepts?", name:"q56", options: ["No", "Not Sure", "Yes"]},
+  { type: "radio", question: "57. Which activity would you like the most?", name:"q57", options: ["Lead People", "Help People", "Organize Data or things", "Analyse Problems", "Buiild or Fix Objects","Design or Decorate Objects."]},
+  { type: "radio", question: "58. Do you like to work with a variety of colors and designs?", name:"q58", options: ["No", "Not Sure", "Yes"]},
+  { type: "radio", question: "59. Can you imagine different pictures, colors and designs when you close your eyes and visualize how things would look like from different angle?", name:"q59", options: ["No", "Not Sure", "Yes"]},
+  { type: "radio", question: "60. Can you convince people to do things your way?", name:"q60", options: ["No", "Not Sure", "Yes"] },
+  { type: "radio", question: "61. Do you often take part in outdoor sports, activities or adventures?", name:"q61", options: ["No", "Not Sure", "Yes"]},
+  { type: "radio", question: "62. Do you enjoy working with data, written records and details?", name:"q62", options: ["No", "Not Sure", "Yes"]},
+   { type: "radio", question: "1. Do you like to participate in social events?", name: "q1", options: ["No", "Not Sure", "Yes"] },
+    { type: "checkbox", question: "2. Which skills do you possess?", name: "q2", options: ["Leadership", "Creativity", "Problem Solving"] },
+    { type: "radio", question: "3. Do you enjoy repairing or fixing gadgets, home appliances etc?", name: "q3", options: ["No", "Not Sure", "Yes"] },
+  { type: "radio", question: "4. Do you like to take command of the situation and lead others?", name: "q4", options: ["No", "Not Sure", "Yes"] },
+  { type: "radio", question: "5. Are you good at influencing people?", name: "q5", options: ["No", "Not Sure", "Yes"] },
+  { type: "radio", question: "6. Do you like to plan, organize and prioritize activities?", name: "q6", options: ["No", "Not Sure", "Yes"] },
+  { type: "radio", question: "7. Do you enjoy taking part in hands-on projects to build some objects or things?", name: "q7", options: ["No", "Not Sure", "Yes"] },
+  { type: "radio", question: "8. Do you like to interact, listen and solve the personal issues of others?", name: "q8", options: ["No", "Not Sure", "Yes"] },
+  { type: "radio", question: "9. Do you generally identify the flaws or mistakes in a document that others miss?", name: "q9", options: ["No", "Not Sure", "Yes"] },
+  { type: "radio", question: "10. Do you ask lots of questions to know how things work?", name: "q10", options: ["No", "Not Sure", "Yes"] },
+  { type: "radio", question: "11. Do you like to participate in a health camp?", name: "q11", options: ["No", "Not Sure", "Yes"] },
+  { type: "checkbox", question: "12. Which skills do you possess? (Select all that apply)", name: "q12", options: ["Leadership", "Creativity", "Problem Solving", "Technical Knowledge"] },
+  { type: "checkbox", question: "13. Which areas interest you the most? (Select all that apply)", name: "q13", options: ["Engineering", "Medical", "Management", "Social Work", "Research"] },
+  { type: "checkbox", question: "14. Which activities do you enjoy the most? (Select all that apply)", name: "q14", options: ["Leading teams", "Fixing gadgets", "Organizing events", "Helping people", "Experimenting with science"] },
+  { type: "checkbox", question: "15. Which qualities describe you best? (Select all that apply)", name: "q15", options: ["Creative", "Analytical", "Empathetic", "Organized", "Logical"] },
+  { type: "checkbox", question: "16. Where would you like to work? (Select all that apply)", name: "q16", options: ["Hospitals", "Research labs", "Corporate offices", "Schools", "Workshops"] },
+  { type: "checkbox", question: "17. What motivates you? (Select all that apply)", name: "q17", options: ["Helping others", "Discovering new things", "Leading a team", "Creating new products", "Organizing systems"] },
+  { type: "radio", question: "18. Which direction will the gear turn?", name: "q18", options: ["Clockwise", "Anti-Clockwise", "It will be steady", "Not sure"], image: "./gear.png" },
+  { type: "checkbox", question: "19. Which image can be made from the three shapes shown?", name: "q19", options: ["A", "B", "C", "D", "E"], image: "./abc2.png"},
+  { type: "checkbox", question: "20. What do you like most", name: "q20", options: ["social activities", "managing task", "influencing poople", "creativity", "research", "outdoor and physical activities"] },
+  { type: "radio", question: "21. Which option describes you best", name: "q21", options: ["I am motivated by achievement", "I am motivated by appreciation"] },
+  { type: "radio", question: "22. Which option describes you best", name: "q22", options: ["I give more importance to facts, tasks and logical considerations.", "I give more importance to the personal value system and social considerations."] },
+  { type: "radio", question: "23. Which option describes you best", name: "q23", options: ["I like to make plans and schedules and try to stick with them", "I like to be flexible and keep points to a minimum"] },
+  { type: "radio", question: "24. Which option describes you best", name: "q24", options: ["I usually take tasks without making a plan", "I usually plan everything first in advance before moving into action."] },
+  { type: "radio", question: "25. Which option describes you best", name: "q25", options: ["I often juggle multiple tasks at a time", "I usually do one task at a time"] },
+  { type: "checkbox", question: "26. What do you like most", name: "q26", options: ["Social Activities", "Managing Task", "Infulencing People", "Creativity", "Research", "Outdoor and Physical Activities"] },
+  { type: "checkbox", question: "27. How do you see yourself?", name: "q27", options: ["Precise, Scintific and Intellectual", "Expressive, Imaginative and Creative", "Helpful, Friendly and Trustworthy", "Energetic, influencial and Sociable", "Planned, Organized and Accurate", "Practical, Mechanical and Physically active"] },
+  { type: "radio", question: "28. You have to present your ideas to your class. You would", name: "q28", options: ["Prefer creating a working model and demonstrate to others"," Prefer creating diagrams, flowcharts, and graphs to explain ideas", "Prefer to write and practice a few key words by saying them over and over again.", "Prefer to write down and practice my speech by reading it over and over again."] },
+  { type: "radio", question: "29. Do you prefer a taecher or a presenter who uses", name:"q29", options: ["Diagrams, charts and graphs?", "Question and answer, talk, group discussion, or guest speakers?", "Handouts, books, or readings?","Demostrations, models or practical sessions?"] },
+  { type: "radio", question: "30. You are about to purchase a digital camera or a mobile phone. Apart from the practice, what would have the most influence on your decision?", name:"q30", options: ["Trying or testing it.", "Reading the details or checking its features online.", "Modern design and sleek looks.", "The salesperson telling me about its features."] },
+  { type: "radio", question: "31. Remember a time when you learned how to do something new. Avold choosing a physical skill eg. Riding a bike. You learned best by", name:"q31", name:"q31", options: ["Watching a demonstration.", "Listening to somebody explaining it and asking questions.", "Diagrams, maps, and charts - visual clues.", "Written instructions e.g a manual or book."] },
+  { type: "checkbox", question: "32. I can easily determine the best solution to a problem.", name:"q32", options: ["Almost always", "Quite often", "Sometimes", "Not very often", "Never"] },
+  {
+  type: "checkbox", 
+  question: "33. If ever given an option, which of the work options listed below would you choose to make a living?<br><span style='color:#00f2fe;font-weight:bold;'>Select one or multiple statements (Max-3)</span>", 
+  name: "q33", 
+  options: [
+    "Spending lots of time on computers and amazing others with your work on computer",
+    "Being a sports person.",
+    "Managing financials and other people's money.",
+    "Trying different ingredients and flavours in food",
+    "Develop high-featured mobile phones, smart watches, televisions, refrigerators etc.",
+    "None of the above"
+  ] 
+},
+{ 
+  type: "checkbox", 
+  question: "34. If ever given an option, which of the work options listed below would you choose to make a living?<br><span style='color:#00f2fe;font-weight:bold;'>Select one or multiple statements (Max-3)</span>", 
+  name: "q34", 
+  options: [
+    "Exploring and guiding new travel destinations to others.",
+    "Executing government policies and offering services to the public.",
+    "Marketing or selling products/services in market.",
+    "Making some new mechanism like an engine, a motors, a fan etc. that reduces human effort significantly.",
+    "Working on Global Warming, environment and pollution-related Issues.",
+    "None of the above"
+  ] 
+},
+{ 
+  type: "checkbox", 
+  question: "35. If ever given an option, which of the work options listed below would you choose to make a living?<br><span style='color:#00f2fe;font-weight:bold;'>Select one or multiple statements (Max-3)</span>", 
+  name: "q35", 
+  options: [
+    "Managing the business of a company.",
+    "Applying science and technology to solve real life problems.",
+    "Being an actor or performer in stage shows/theater.",
+    "Follow fashion trends.",
+    "Studying historical events and current scenarios.",
+    "None of the above"
+  ] 
+},
+{ 
+  type: "checkbox", 
+  question: "36. If ever given an option, which of the work options listed below would you choose to make a living?<br><span style='color:#00f2fe;font-weight:bold;'>Select one or multiple statements (Max-3)</span>", 
+  name: "q36", 
+  options: [
+    "Writing articles or stories and speaking in order to attract/reach people.",
+    "Investigating a crime scene and providing Justice.",
+    "Dedicating your life to national and public security.",
+    "Given a botanical laboratory, I would like to grow variety of fruits from a single tree.",
+    "Teaching, guiding or training others to learn new skills.",
+    "None of the above"
+  ] 
+},
+{ 
+  type: "checkbox", 
+  question: "37. If ever given an option, which of the work options listed below would you choose to make a living?<br><span style='color:#00f2fe;font-weight:bold;'>Select one or multiple statements (Max-3)</span>", 
+  name: "q37", 
+  options: [
+    "Involve myself in the wealth and financial well-being of the nation.",
+    "Drawing and painting.",
+    "Involve in space exploration mission.",
+    "Advice others on diet-related, fitness-related or health care-related tips.",
+    "Curing animals from disease.",
+    "None of the above"
+  ] 
+},
+{ 
+  type: "checkbox", 
+  question: "38. If ever given an option, which of the work options listed below would you choose to make a living?<br><span style='color:#00f2fe;font-weight:bold;'>Select one or multiple statements (Max-3)</span>", 
+  name: "q38", 
+  options: [
+    "Explore marine life.",
+    "Explore the forest.",
+    "Doing research in a lab to develop a new medical treatment.",
+    "Manage a retail store or supermarket.",
+    "Creating high-rise buildings or structures",
+    "None of the above"
+  ] 
+},
+
+  { type: "radio", question: "39. The bob on the two pendulums have the same weight. If both the pendulums are swung at the same time, which one will swing faster?", name:"q39", options: ["A", "B", "Both will swing at the same pace", "Not sure"],image: "./pendulum.png" },
+  { type: "radio", question: "40. Find the series<br>4, 8 16, 32, ----?", name:"q40", options: ["48", "64", "40","50"]},
+  { type: "radio", question: "41. Some greens are blue. No blues are white. Therefore", name:"q41", options: ["Some greens are white", "No whites are green.", "No greens are white.", "None of the above"]},
+  { type: "radio", question: "42. Look at this picture. There is something missing here. Identify the missing?", name:"q42", options: ["A", "B", "C", "D", "E"], image:"./zxy.png"},
+  { type: "radio", question: "43. How the image looks like post mixing 2 images?", name:"q43", options: ["A", "B", "C", "D", "E"], image: "./mixing.jpg"},
+  { type: "radio", question: "44. pick the odd one out-", name:"q44", options: ["Index", "Glossary", "Chapter", "Book"]},
+  { type: "radio", question: "45. A jar is filled with an even number of chocolates by a shopkeeper. How many chocolates did he put in the jar?<br>Choose the option below-", name:"q45", options: ["999","903","900","997","13"]},
+  { type: "radio", question: "46. If 7 spiders spiin 7 webs in 7 days, then how many days will a spider take to spin a web?", name:"q46", options: ["7", "5", "3", "2", "1"]},
+  { type: "radio", question: "47. Do you like subjects like social science or psychology?", name:"q47", options: ["No", "Not Sure", "Yes"]},
+  { type: "radio", question: "48. Do you like working indoors and doing paperwork?", name:"q48", options: ["No", "Not Sure", "Yes"]},
+  { type: "radio", question: "49. Are you good at arguing your point of view?", name:"q49", options: ["No", "Not Sure", "Yes"]},
+  { type: "radio", question: "50. Do you enjoy opening gadgets or toys to see the mechanism and how it works?", name:"q50", options: ["Not really","Rarely", "Yes, I have done it many times."]},
+  { type: "radio", question: "51. Can you analyze and solve problems quickly in your head?", name:"q51", options: ["No", "Not Sure", "Yes"]},
+  { type: "radio", question: "52. Find an exact copy of the code.<br>##HIIFH257O3881", name:"q52", options: ["##HIIIFH257O388I", "##HIIFH25703881", "##HIIFH25793381", "##HIIFH257O388I", "##HIIFH257O388II"]},
+  { type: "radio", question: "53. Do you find it easy to get involved in creative activities?", name:"q53", options: ["No", "Not Sure", " Yes"]},
+  { type: "radio", question: "54. Do you often discuss the social issues of society?", name:"q54", options: ["No", "Not Sure", "Yes"]},
+  { type: "radio", question: "55. Do you follow a budget, economic policies or financial news?", name:"q55", options: ["No", "Not Sure", "Yes"]},
+  { type: "radio", question: "56. Do you like to demonstrate new ideas or concepts?", name:"q56", options: ["No", "Not Sure", "Yes"]},
+  { type: "radio", question: "57. Which activity would you like the most?", name:"q57", options: ["Lead People", "Help People", "Organize Data or things", "Analyse Problems", "Buiild or Fix Objects","Design or Decorate Objects."]},
+  { type: "radio", question: "58. Do you like to work with a variety of colors and designs?", name:"q58", options: ["No", "Not Sure", "Yes"]},
+  { type: "radio", question: "59. Can you imagine different pictures, colors and designs when you close your eyes and visualize how things would look like from different angle?", name:"q59", options: ["No", "Not Sure", "Yes"]},
+  { type: "radio", question: "60. Can you convince people to do things your way?", name:"q60", options: ["No", "Not Sure", "Yes"] },
+  { type: "radio", question: "61. Do you often take part in outdoor sports, activities or adventures?", name:"q61", options: ["No", "Not Sure", "Yes"]},
+  { type: "radio", question: "62. Do you enjoy working with data, written records and details?", name:"q62", options: ["No", "Not Sure", "Yes"]},
+  ];
+
+
+
+  function buildQuiz() {
+  try {
+    const container = document.getElementById("quiz-container");
+    if (!container) {
+      console.error("Quiz container not found");
+      return;
+    }
+
+    container.innerHTML = "";
+
+    quizData.forEach((q, index) => {
+      const div = document.createElement("div");
+      div.className = "question";
+
+      const h2 = document.createElement("h2");
+      h2.innerHTML = `${index + 1}. ${q.question}`;
+      div.appendChild(h2);
+
+      if (q.image) {
+        const img = document.createElement("img");
+        img.src = q.image;
+        img.alt = `Question ${index + 1} Image`;
+        img.onerror = function() {
+          console.warn(`Image failed to load for question ${index + 1}`);
+          this.style.display = 'none';
+        };
+        div.appendChild(img);
+      }
+
+      const opts = document.createElement("div");
+      opts.className = "options";
+
+      q.options.forEach(opt => {
+        const label = document.createElement("label");
+        const input = document.createElement("input");
+        input.type = q.type;
+        input.name = q.name;
+        input.value = opt;
+        label.appendChild(input);
+        label.appendChild(document.createTextNode(" " + opt));
+        opts.appendChild(label);
+      });
+
+      div.appendChild(opts);
+      container.appendChild(div);
+    });
+
+    const submitWrapper = document.getElementById("submit-wrapper");
+    if (submitWrapper) {
+      submitWrapper.style.display = "block";
+    }
+  } catch (error) {
+    console.error("Error building quiz:", error);
+    alert("There was an error loading the quiz. Please refresh the page.");
+  }
+}
+
+function handleSubmit() {
+  try {
+    const resultDiv = document.getElementById("result");
+    if (!resultDiv) {
+      console.error("Result container not found");
+      return;
+    }
+
+    resultDiv.innerHTML = "";
+    let answered = 0;
+    let total = quizData.length;
+    const answers = {};
+
+    // Validate quiz data
+    if (!Array.isArray(quizData) || quizData.length === 0) {
+      throw new Error("Invalid quiz data");
+    }
+
+    quizData.forEach(q => {
+      if (!q.name) {
+        console.warn("Question missing name property");
+        return;
+      }
+
+      const selected = Array.from(document.querySelectorAll(`input[name="${q.name}"]:checked`));
+      if (selected.length > 0) {
+        answered++;
+        answers[q.name] = selected.map(i => i.value);
+      } else {
+        answers[q.name] = [];
+      }
+    });
+
+    // Validate minimum answers
+    if (answered === 0) {
+      alert("Please answer at least one question before submitting.");
+      return;
+    }
+
+    const summary = generateDetailedReport(answers);
+    resultDiv.innerHTML = `
+      <div style="background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.1);" class="result-card">
+        <h2 style="color: #00f2fe; text-align: center;">Your AI-Generated Personality Report</h2>
+        <div id="reportText" style="color: black;">
+          ${summary}
+        </div>
+        <div style="text-align: center; margin-top: 20px;">
+          <button onclick="downloadPDF()" style="padding: 12px 25px; background-color: #00f2fe; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+            Download PDF Report
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Animate score bars
+    animateScoreBars();
+
+    // Scroll to results with smooth animation
+  } catch (error) {
+    console.error("Error handling submit:", error);
+    alert("There was an error processing your submission. Please try again.");
+  }
+}
+
+
+// Initialize quiz when document is ready
+document.addEventListener('DOMContentLoaded', function() {
+  buildQuiz();
+  document.getElementById("submit-btn").addEventListener("click", handleSubmit);
+});
+
+function generateReport(answers) {
+  // Placeholder: logic will analyze answers and generate multi-section report
+  return `
+    <h3>🧠 Personality Traits</h3><p>Generated dynamically from your answers...</p>
+    <h3>💪 Strengths</h3><p>Generated dynamically from your answers...</p>
+    <h3>⚠ Weaknesses</h3><p>Generated dynamically from your answers...</p>
+    <h3>🎯 Career Suggestions</h3><p>Generated dynamically based on your traits...</p>
+    <h3>📈 Detailed Analysis</h3><p>Page-wise insights will be generated here in full version.</p>
+  `;
+}
+
+function renderChart(answers) {
+  // Placeholder chart logic
+  const ctx = document.getElementById("chartCanvas").getContext("2d");
+  new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: ["Creativity", "Logic", "Leadership", "Empathy", "Discipline"],
+      datasets: [{
+        label: "Trait Score",
+        data: [4, 5, 2, 3, 4],
+        backgroundColor: ["#00f2fe", "#00c6d2", "#00bcd4", "#26c6da", "#4dd0e1"]
+      }]
+    },
+    options: {
+      scales: {
+        y: { beginAtZero: true, ticks: { color: "#fff" } },
+        x: { ticks: { color: "#fff" } }
+      },
+      plugins: { legend: { labels: { color: "#fff" } } }
+    }
+  });
+}
+
+function downloadPDF() {
+  try {
+    const pdfContainer = document.createElement('div');
+    pdfContainer.style.cssText = `
+      padding: 40px;
+      background-color: white;
+      color: black;
+      width: 210mm;
+      margin: 0 auto;
+      font-family: Arial, sans-serif;
+    `;
+
+    const resultDiv = document.getElementById('result');
+    if (!resultDiv || resultDiv.innerHTML.trim() === '') {
+      alert('Please complete the quiz first to generate a report.');
+      return;
+    }
+
+    const reportClone = resultDiv.cloneNode(true);
+
+    const styleForPDF = `
+      <style>
+        * {
+          -webkit-print-color-adjust: exact !important;
+          color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+        #pdf-container {
+          font-family: Arial, sans-serif;
+          color: black !important;
+          background-color: white !important;
+        }
+        h1, h2, h3 {
+          color: #000000 !important;
+          margin: 15px 0;
+          page-break-after: avoid;
+        }
+        p, li {
+          color: #000000 !important;
+          margin: 8px 0;
+        }
+        .trait-bar {
+          margin: 15px 0;
+          page-break-inside: avoid;
+        }
+        .score-bar {
+          background: #00f2fe !important;
+          height: 100%;
+        }
+        .career-card, .insight-card, .development-card {
+          background: #f5f5f5 !important;
+          padding: 15px;
+          margin: 10px 0;
+          border-radius: 5px;
+          page-break-inside: avoid;
+        }
+        .result-section {
+          margin: 20px 0;
+          page-break-inside: avoid;
+        }
+        button {
+          display: none !important;
+        }
+      </style>
+    `;
+
+    pdfContainer.innerHTML = styleForPDF;
+    pdfContainer.appendChild(reportClone);
+
+    const loadingDiv = document.createElement('div');
+    loadingDiv.id = 'pdf-loading';
+    loadingDiv.innerHTML = 'Generating PDF...';
+    loadingDiv.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 20px;
+      background: #00f2fe;
+      color: white;
+      border-radius: 10px;
+      z-index: 9999;
+      font-family: 'Poppins', sans-serif;
+    `;
+    document.body.appendChild(loadingDiv);
+
+    document.body.appendChild(pdfContainer);
+
+    const opt = {
+      margin: [15, 15],
+      filename: 'Monster_AI_Personality_Report.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        letterRendering: true
+      },
+      jsPDF: {
+        unit: 'mm',
+        format: 'a4',
+        orientation: 'portrait'
+      },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+
+    const pdfPromise = html2pdf().from(pdfContainer).set(opt).save();
+
+    const timeout = setTimeout(() => {
+      if (loadingDiv.parentNode) {
+        document.body.removeChild(loadingDiv);
+      }
+      if (pdfContainer.parentNode) {
+        document.body.removeChild(pdfContainer);
+      }
+      alert('PDF generation timed out. Please try again.');
+    }, 30000);
+
+    pdfPromise.then(() => {
+      clearTimeout(timeout);
+      if (loadingDiv.parentNode) {
+        document.body.removeChild(loadingDiv);
+      }
+      if (pdfContainer.parentNode) {
+        document.body.removeChild(pdfContainer);
+      }
+    }).catch(err => {
+      clearTimeout(timeout);
+      console.error('PDF generation failed:', err);
+      alert('Failed to generate PDF. Please try again.');
+      if (loadingDiv.parentNode) {
+        document.body.removeChild(loadingDiv);
+      }
+      if (pdfContainer.parentNode) {
+        document.body.removeChild(pdfContainer);
+      }
+    });
+  } catch (error) {
+    console.error("Error in PDF generation:", error);
+    alert("There was an error generating the PDF. Please try again.");
+    const loadingDiv = document.getElementById('pdf-loading');
+    if (loadingDiv) {
+      document.body.removeChild(loadingDiv);
+    }
+    const pdfContainer = document.getElementById('pdf-container');
+    if (pdfContainer) {
+      document.body.removeChild(pdfContainer);
+    }
+  }
+}
+
+
+
+function generateDetailedReport(answers) {
+  // Calculate trait scores
+  let traits = {
+    'Analytical Thinking': 0,
+    'Creativity': 0,
+    'Leadership': 0,
+    'Social Skills': 0,
+    'Technical Aptitude': 0
+  };
+  
+  // Calculate scores based on answers
+  Object.entries(answers).forEach(([question, answer]) => {
+    if (answer.includes('Yes')) {
+      if (question.match(/q(10|40|41|51)/)) traits['Analytical Thinking'] += 20;
+      if (question.match(/q(2|53|58|59)/)) traits['Creativity'] += 20;
+      if (question.match(/q(4|5|49|60)/)) traits['Leadership'] += 20;
+      if (question.match(/q(1|8|47|54)/)) traits['Social Skills'] += 20;
+      if (question.match(/q(3|7|50)/)) traits['Technical Aptitude'] += 20;
+    }
+  });
+
+  // Normalize scores
+  Object.keys(traits).forEach(trait => {
+    traits[trait] = Math.min(100, Math.round(traits[trait]));
+  });
+
+  // Generate career recommendations
+  const careerSuggestions = [];
+  if (traits['Analytical Thinking'] >= 60) careerSuggestions.push('Data Analyst', 'Business Analyst');
+  if (traits['Creativity'] >= 60) careerSuggestions.push('UX Designer', 'Content Creator');
+  if (traits['Leadership'] >= 60) careerSuggestions.push('Project Manager', 'Team Lead');
+  if (traits['Social Skills'] >= 60) careerSuggestions.push('Customer Success Manager', 'HR Professional');
+  if (traits['Technical Aptitude'] >= 60) careerSuggestions.push('Software Developer', 'Systems Engineer');
+
+  // Calculate completion stats
+  const totalQuestions = Object.keys(quizData).length;
+  const answeredQuestions = Object.values(answers).filter(a => a.length > 0).length;
+  const completionPercentage = Math.round((answeredQuestions / totalQuestions) * 100);
+
+  return `
+    <div style="font-family: Arial, sans-serif; color: black !important; background-color: white !important; padding: 20px;" class="result-card">
+      <h1 style="color: black !important; text-align: center;" class="animate-slideIn">Your AI Personality Analysis Report</h1>
+      <p style="text-align: center; font-style: italic; color: black !important;">Generated on ${new Date().toLocaleDateString()}</p>
+      
+      <div style="margin: 20px 0; text-align: center; color: black !important;">
+        <strong>Completion Rate:</strong> ${completionPercentage}%<br>
+        <strong>Questions Answered:</strong> ${answeredQuestions} out of ${totalQuestions}
+      </div>
+
+      <div style="margin: 30px 0;">
+        <h2 style="color: black !important;">🧠 Personality Profile</h2>
+        ${Object.entries(traits)
+          .map(([trait, score], index) => `
+            <div style="margin: 15px 0; color: black !important;" class="trait-bar" style="animation-delay: ${index * 0.2}s">
+              <strong>${trait}:</strong> ${score}%
+              <div style="background: #eee; height: 20px; width: 100%; margin-top: 5px;">
+                <div style="background: #00f2fe; height: 100%; width: 0%; transition: width 1s ease-out;" class="score-bar" data-score="${score}"></div>
+              </div>
+            </div>
+          `).join('')}
+      </div>
+
+      <div style="margin: 30px 0;">
+        <h2 style="color: black !important;">🎯 Recommended Career Paths</h2>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+          ${careerSuggestions.map((career, index) => `
+            <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; color: black !important;" class="career-card" style="animation: fadeIn 0.5s ease-out ${index * 0.2}s forwards;">
+              <strong>${career}</strong>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <div style="margin: 30px 0;">
+        <h2 style="color: black !important;">💡 Key Insights</h2>
+        <ul style="list-style-type: none; padding: 0;">
+          ${Object.entries(traits)
+            .filter(([_, score]) => score >= 70)
+            .map(([trait, score], index) => `
+              <li style="margin: 10px 0; padding: 15px; background: #f5f5f5; border-radius: 5px; color: black !important;" class="insight-card" style="animation: slideIn 0.5s ease-out ${index * 0.2}s forwards;">
+                You show strong capabilities in ${trait} (${score}%). This suggests you would excel in roles that require ${trait.toLowerCase()}.
+              </li>
+            `).join('')}
+        </ul>
+      </div>
+
+      <div style="margin: 30px 0;">
+        <h2 style="color: black !important;">📈 Areas for Development</h2>
+        <ul style="list-style-type: none; padding: 0;">
+          ${Object.entries(traits)
+            .filter(([_, score]) => score < 50)
+            .map(([trait], index) => `
+              <li style="margin: 10px 0; padding: 15px; background: #f5f5f5; border-radius: 5px; color: black !important;" class="development-card" style="animation: slideIn 0.5s ease-out ${index * 0.2}s forwards;">
+                Consider focusing on developing your ${trait.toLowerCase()} skills to broaden your career opportunities.
+              </li>
+            `).join('')}
+        </ul>
+      </div>
+
+      <div style="margin-top: 30px; text-align: center; font-style: italic; font-size: 0.9em; color: #666 !important;">
+        This report is generated based on your responses to the Monster AI Quiz.<br>
+        It is meant to provide insights and suggestions, not definitive conclusions.
+      </div>
+    </div>
+  `;
+}
+
+// Add this function after the report generation
+function animateScoreBars() {
+  setTimeout(() => {
+    const scoreBars = document.querySelectorAll('.score-bar');
+    scoreBars.forEach(bar => {
+      const score = bar.getAttribute('data-score');
+      bar.style.width =` ${score}%`;
+    });
+  }, 500);
+}
+
+</script>
+
+</body>
+</html>
